@@ -53,8 +53,8 @@ int solve_square_equation (double *coefs, double *roots) {
         return no_roots;
     }
     else {
-        roots[0] = (-coefs[1] + sqrt(discriminant)) / (2 * coefs[0]);
-        roots[1] = (-coefs[1] - sqrt(discriminant)) / (2 * coefs[0]);
+        roots[0] = (-coefs[1] - sqrt(discriminant)) / (2 * coefs[0]);
+        roots[1] = (-coefs[1] + sqrt(discriminant)) / (2 * coefs[0]);
         return two_roots;
     }
 }
@@ -75,7 +75,7 @@ int solve (double *coefs, double *roots) {
 
 
 int one_test_solve(double *test, int test_num) {
-    double roots[] = {NAN, NAN};
+    double roots[] = {123, 123}; //123 -- used instead of NAN as a base value for testing purposes
     double coefs[] = {test[0], test[1], test[2]};          // 'test' array should have the following form:
     int count_roots = solve(coefs, roots);                // {coef_a, coef_b, coef_c, x1, x2}
     if (!(equal(roots[0], test[3]) && equal(roots[1], test[4]))) {
@@ -85,16 +85,16 @@ int one_test_solve(double *test, int test_num) {
 
 int run_test_solve() {
     double tests[num_of_tests][5] = {
-        {1, 5, 6, -2, -3},
-        {1, -2, 1, 1, NAN},
-        {0, 1, -1, 1, NAN},
+        {1, 5, 6, -3, -2},
+        {1, -2, 1, 1, 123},
+        {0, 1, -1, 1, 123},
         {1, 1, -2, -2, 1},
-        {0, 0, 0, NAN, NAN},
-        {0, 0, 1, NAN, NAN},
+        {0, 0, 0, 123, 123},
+        {0, 0, 1, 123, 123},
         {1, -6, 5, 1, 5},
         {1, -10, 24, 4, 6},
         {1, -8, 15, 3, 5},
-        {0, 10, -1, 0.1, NAN}
+        {0, 10, -1, 0.1, 123}
     };
     int failed_tests = 0;
     for (int i = 0; i < num_of_tests; ++i) {
@@ -168,6 +168,6 @@ int main () {
     assert(isfinite(coefs[2]));
     int count_roots = solve(coefs, roots);
     output(count_roots, roots);
-    //printf("Failed tests: %d\n", run_test_solve());
+    printf("Failed tests: %d\n", run_test_solve());
     return 0;
 }
