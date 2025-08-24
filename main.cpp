@@ -79,7 +79,11 @@ int one_test_solve(double *test, int test_num) {
     double coefs[] = {test[0], test[1], test[2]};          // 'test' array should have the following form:
     int count_roots = solve(coefs, roots);                // {coef_a, coef_b, coef_c, x1, x2}
     if (!(equal(roots[0], test[3]) && equal(roots[1], test[4]))) {
-        printf("Test #%d failed: solve() -> %lg %lg (should be %lg %lg)\n", test_num, roots[0], roots[1], test[3], test[4]);
+        printf("\033[31mTest #%d failed: solve() -> %lg %lg (should be %lg %lg)\033[0m\n", test_num, roots[0], roots[1], test[3], test[4]);
+        return 1;
+    }
+    else {
+        return 0;
     }
 }
 
@@ -168,6 +172,13 @@ int main () {
     assert(isfinite(coefs[2]));
     int count_roots = solve(coefs, roots);
     output(count_roots, roots);
-    printf("Failed tests: %d\n", run_test_solve());
+    //testing
+    int failed_tests = run_test_solve();
+    if (failed_tests > 0) {
+        printf("\033[31mFailed tests: %d\033[0m\n", failed_tests);
+    }
+    else {
+        printf("\033[32mAll tests passed!:)\033[0m\n");
+    }
     return 0;
 }
