@@ -9,7 +9,6 @@ const int inf_roots = 1e9;
 const int num_of_tests = 10;
 
 enum cases {
-    no_input = -1,
     no_roots = 0,
     one_root = 1,
     two_roots = 2,
@@ -60,9 +59,9 @@ int solve_square_equation (double *coefs, double *roots) {
 }
 
 int solve (double *coefs, double *roots) {
-    if (isnan(coefs[0]) || isnan(coefs[1]) || isnan(coefs[2])) {
-        return no_input;
-    }
+    assert(isfinite(coefs[0]));
+    assert(isfinite(coefs[1]));
+    assert(isfinite(coefs[2]));
     assert(roots[0] != NULL);
     assert(roots[1] != NULL);
     if (equal(coefs[0], 0)) {
@@ -107,36 +106,33 @@ int run_test_solve() {
     return failed_tests;
 }
 
-
-void input(double *coefs) {
+int input(double *coefs) {
     assert(coefs[0] != NULL);
     assert(coefs[1] != NULL);
     assert(coefs[2] != NULL);
-    while (scanf("%lf %lf %lf", &coefs[0], &coefs[1], &coefs[2]) != 3) {
+    input_coefficients:
+        printf("Enter coefficients a, b, c:\n");
+        if (scanf("%lf %lf %lf", &coefs[0], &coefs[1], &coefs[2]) != 3) {
+            flushline();
+            goto incorrect_input;
+        }
+        else {
+            return 1;
+        }
+    incorrect_input:
+        printf("Incorrect input\n");
+        printf("Still want to continue? \033[33m[y/n]\033[0m\n");
+        char ans = getchar();
         flushline();
-        incorrect_input:
-            printf("Incorrect input\n");
-            printf("Still want to continue? [y/n]\n");
-                char ans = getchar();
-            if (ans == 'n') {
-                break;
-            }
-            else if (ans == 'y') {
-                char ans1 = getchar();
-                if (ans1 == '\n' || ans1 == EOF) {
-                    printf("Enter coefficients a, b, c:\n");
-                }
-                else {
-                    flushline();
-                    goto incorrect_input;
-                }
-            }
-            else {
-                flushline();
-                goto incorrect_input;
-            }
-
-    }
+        if (ans == 'n') {
+            return 0;
+        }
+        else if (ans == 'y') {
+            goto input_coefficients;
+        }
+        else {
+            goto incorrect_input;
+        }
 }
 
 void output(int num_of_roots, double *roots) {
@@ -153,25 +149,30 @@ void output(int num_of_roots, double *roots) {
         case two_roots:
             printf("Two roots: %lf %lf\n", roots[0], roots[1]);
             break;
-        case no_input:
-            printf("Program terminated\n");
-            break;
         default:
             printf("Error: switch reached impossible case\n");
     }
 }
 
+int loop () {
+    ask_for_input:
+        printf("Want me to solve another one? \033[33m[y/n]\033[0m\n");
+        flushline();
+        char ans = getchar();
+        if (ans == 'y') {
+            return 1;
+        }
+        else if (ans == 'n') {
+            return 0;
+        }
+        else {
+            printf("Incorrect input\n");
+            goto ask_for_input;
+        }
+}
+
 int main () {
-    double coefs[] = {NAN, NAN, NAN};
-    double roots[] = {NAN, NAN};
-    printf("Solves quadratic equation ax^2 + bx + c = 0\n");
-    printf("Enter coefficients a, b, c:\n");
-    input(coefs);
-    assert(isfinite(coefs[0]));
-    assert(isfinite(coefs[1]));
-    assert(isfinite(coefs[2]));
-    int count_roots = solve(coefs, roots);
-    output(count_roots, roots);
+    /*
     //testing
     int failed_tests = run_test_solve();
     if (failed_tests > 0) {
@@ -179,6 +180,24 @@ int main () {
     }
     else {
         printf("\033[32mAll tests passed!:)\033[0m\n");
+    }
+    */
+    double coefs[] = {NAN, NAN, NAN};
+    double roots[] = {NAN, NAN};
+    int program_running = 1;
+    printf("Solves quadratic equation ax^2 + bx + c = 0\n");
+    while (program_running) {
+        program_running = input(coefs);
+        if (!program_running) {
+            printf("End of program. Goodbye.\n");
+            break;
+        }
+        assert(isfinite(coefs[0]));
+        assert(isfinite(coefs[1]));
+        assert(isfinite(coefs[2]));
+        int count_roots = solve(coefs, roots);
+        output(count_roots, roots);
+        program_running = loop();
     }
     return 0;
 }
