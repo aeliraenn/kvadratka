@@ -182,11 +182,11 @@ int main () {
         printf("\033[32mAll tests passed!:)\033[0m\n");
     }
     */
-    double coefs[] = {NAN, NAN, NAN};
-    double roots[] = {NAN, NAN};
     int program_running = 1;
     printf("Solves quadratic equation ax^2 + bx + c = 0\n");
     while (program_running) {
+        double coefs[] = {NAN, NAN, NAN};
+        double roots[] = {NAN, NAN};
         program_running = input(coefs);
         if (!program_running) {
             printf("End of program. Goodbye.\n");
