@@ -12,6 +12,13 @@ enum {
     two_roots = 2,
 };
 
+
+//cleans the input stream up to the next line
+void flushline () {
+    char c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
 char compare_doubles (double n1, double n2) {
     return fabs(n1 - n2) < eps;
 }
@@ -66,9 +73,7 @@ int Solve (double coef_a, double coef_b, double coef_c,
 
 void input(double &coef_a, double &coef_b, double &coef_c) {
     while (scanf("%lf %lf %lf", &coef_a, &coef_b, &coef_c) != 3) {
-        char ch = getchar();
-        while (ch != '\n' && ch != EOF)
-            ch = getchar();
+        flushline();
         incorrect_input:
             printf("Incorrect input\n");
             printf("Still want to continue? [y/n]\n");
@@ -82,14 +87,12 @@ void input(double &coef_a, double &coef_b, double &coef_c) {
                     printf("Enter coefficients a, b, c:\n");
                 }
                 else {
-                    while (ans1 != '\n' && ans != EOF)
-                        ans1 = getchar();
+                    flushline();
                     goto incorrect_input;
                 }
             }
             else {
-                while (ans != '\n' && ans != EOF)
-                    ans = getchar();
+                flushline();
                 goto incorrect_input;
             }
 
