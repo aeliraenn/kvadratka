@@ -6,7 +6,7 @@
 const double eps = DBL_EPSILON;
 const int inf_roots = 1e9;     //enum
 enum {
-    impossible_case = -1,
+    no_input = -1,
     no_roots = 0,
     one_root = 1,
     two_roots = 2,
@@ -43,6 +43,9 @@ int Solve_Square_Equation (double coef_a, double coef_b, double coef_c,
 
 int Solve (double coef_a, double coef_b, double coef_c,
                                 double* x1, double* x2)    {
+    if (isnan(coef_a) || isnan(coef_b) || isnan(coef_c)) {
+        return no_input;
+    }
     if (compare_doubles(coef_a, 0)) {
         if (compare_doubles(coef_b, 0)) {
             if (compare_doubles(coef_c, 0)) {
@@ -63,10 +66,33 @@ int Solve (double coef_a, double coef_b, double coef_c,
 
 void input(double &coef_a, double &coef_b, double &coef_c) {
     while (scanf("%lf %lf %lf", &coef_a, &coef_b, &coef_c) != 3) {
-        printf("Incorrect input\n");
         char ch = getchar();
         while (ch != '\n' && ch != EOF)
             ch = getchar();
+        incorrect_input:
+            printf("Incorrect input\n");
+            printf("Still want to continue? [y/n]\n");
+            char ans = getchar();
+            if (ans == 'n') {
+                break;
+            }
+            else if (ans == 'y') {
+                char ans1 = getchar();
+                if (ans1 == '\n' || ans1 == EOF) {
+                    printf("Enter coefficients a, b, c:\n");
+                }
+                else {
+                    while (ans1 != '\n' && ans != EOF)
+                        ans1 = getchar();
+                    goto incorrect_input;
+                }
+            }
+            else {
+                while (ans != '\n' && ans != EOF)
+                    ans = getchar();
+                goto incorrect_input;
+            }
+
     }
 }
 
@@ -84,8 +110,8 @@ void output(int num_of_roots, double &x1, double &x2) {
         case two_roots:
             printf("Two roots: %lf %lf\n", x1, x2);
             break;
-        case impossible_case:
-            printf("Error: Solve returned impossible case");
+        case no_input:
+            printf("Program terminated");
             break;
         default:
             printf("Error: switch reached impossible case");      //
@@ -101,6 +127,5 @@ int main () {
     input(coef_a, coef_b, coef_c);
     int count_roots = Solve(coef_a, coef_b, coef_c, &x1, &x2);
     output(count_roots, x1, x2);
-
     return 0;
 }
