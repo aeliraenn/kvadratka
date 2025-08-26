@@ -5,14 +5,37 @@
 #include <stdlib.h>  //for NULL
 
 const double eps = DBL_EPSILON;
-const int inf_roots = 1e9;
 const int num_of_tests = 10;
 
 enum cases {
     no_roots = 0,
     one_root = 1,
     two_roots = 2,
+    inf_roots = -1
 };
+
+// add assert all func
+// add struct
+// more files
+
+struct TestData {
+    double coef_a, coef_b, coef_c;
+    int num_of_roots;
+};
+
+void start (double *coefs, double *roots);
+void output (int num_of_roots, double *roots);
+void continue_solving (double *coefs, double *roots);
+void input (double *coefs, double *roots);
+void flushline ();
+char equal (double n1, double n2);
+int solve_linear_equation(double coef_b, double coef_c, double *x1);
+int solve_square_equation(double *coefs, double *roots);
+int solve (double *coefs, double *roots);
+bool check_root_linear (double *coefs, double x);
+bool check_roots_square (double *coefs, double *roots);
+int one_test_solve(TestData *test, int test_num);
+void run_test_solve();
 
 //cleans the input stream up to the next line
 void flushline () {
@@ -23,11 +46,16 @@ void flushline () {
 char equal (double n1, double n2) {
     assert(isfinite(n1));
     assert(isfinite(n2));
+
     return fabs(n1 - n2) < eps;
 }
 
 int solve_linear_equation (double coef_b, double coef_c,
                             double* x1) {
+    assert(isfinite(coef_b));
+    assert(isfinite(coef_c));
+    assert(x1 != NULL);
+
     if (equal(coef_b, 0)) {
         if (equal(coef_c, 0)) {
             return inf_roots;
@@ -43,10 +71,21 @@ int solve_linear_equation (double coef_b, double coef_c,
 }
 
 int solve_square_equation (double *coefs, double *roots) {
+    assert(coefs != NULL);
+    assert(isfinite(coefs[0]));
+    assert(isfinite(coefs[1]));
+    assert(isfinite(coefs[2]));
+    assert(roots != NULL);
+
     double discriminant = coefs[1] * coefs[1] - 4 * coefs[0] * coefs[2];
-    if (equal(discriminant, 0)) {
-        roots[0] = -coefs[1] / (2 * coefs[0]);
-        return one_root;
+    if (equal(coefs[2], 0)) {
+        solve_linear_equation(coefs[0], coefs[1], &roots[0]);
+        roots[1] = 0;
+        return two_roots;
+    }
+    else if (equal(discriminant, 0)) {
+        roots[0] = roots[1] = -coefs[1] / (2 * coefs[0]);
+        return two_roots;
     }
     else if (discriminant < 0) {
         return no_roots;
@@ -59,11 +98,12 @@ int solve_square_equation (double *coefs, double *roots) {
 }
 
 int solve (double *coefs, double *roots) {
+    assert(coefs != NULL);
     assert(isfinite(coefs[0]));
     assert(isfinite(coefs[1]));
     assert(isfinite(coefs[2]));
-    assert(roots[0] != NULL);
-    assert(roots[1] != NULL);
+    assert(roots != NULL);
+
     if (equal(coefs[0], 0)) {
         return solve_linear_equation(coefs[1], coefs[2], &roots[0]);
     }
@@ -72,70 +112,164 @@ int solve (double *coefs, double *roots) {
     }
 }
 
+bool check_root_linear (double *coefs, double x) {
+    assert(coefs != NULL);
+    assert(isfinite(coefs[1]));
+    assert(isfinite(coefs[2]));
+    assert(isfinite(x));
 
-int one_test_solve(double *test, int test_num) {
-    double roots[] = {123, 123}; //123 -- used instead of NAN as a base value for testing purposes
-    double coefs[] = {test[0], test[1], test[2]};          // 'test' array should have the following form:
-    int count_roots = solve(coefs, roots);                // {coef_a, coef_b, coef_c, x1, x2}
-    if (!(equal(roots[0], test[3]) && equal(roots[1], test[4]))) {
-        printf("\033[31mTest #%d failed: solve() -> %lg %lg (should be %lg %lg)\033[0m\n", test_num, roots[0], roots[1], test[3], test[4]);
-        return 1;
-    }
-    else {
-        return 0;
+    return equal(coefs[1] * x + coefs[2], 0);
+}
+
+bool check_roots_square (double *coefs, double *roots) {
+    assert(coefs != NULL);
+    assert(isfinite(coefs[0]));
+    assert(isfinite(coefs[1]));
+    assert(isfinite(coefs[2]));
+    assert(roots != NULL);
+
+    return (equal(coefs[0] * roots[0] * roots[0] + coefs[1] * roots[0] + coefs[2], 0) &&
+    equal(coefs[0] * roots[1] * roots[1] + coefs[1] * roots[1] + coefs[2], 0));
+}
+
+int one_test_solve(TestData *test, int test_num) {
+     assert(test != NULL);
+     assert(isfinite(test->coef_a));
+     assert(isfinite(test->coef_b));
+     assert(isfinite(test->coef_c));
+
+    double coefs[] = {test->coef_a, test->coef_b, test->coef_c};
+    double roots[2];
+    int num_of_roots = solve(coefs, roots);
+    switch (num_of_roots) {
+        case no_roots:
+            if (num_of_roots != test->num_of_roots) {
+                printf("\033[31mTest #%d failed: solve() -> %d roots (should not be any)\033[0m\n", test_num, num_of_roots, test->num_of_roots);
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        case inf_roots:
+            if (num_of_roots != test->num_of_roots) {
+                printf("\033[31mTest #%d failed: solve() -> %d roots (should be infinite number of roots)\033[0m\n", test_num, num_of_roots, test->num_of_roots);
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        case one_root:
+            if (!(num_of_roots == test->num_of_roots && check_root_linear(coefs, roots[0]))) {
+                printf("\033[31mTest #%d failed: solve() -> %lg (number of roots = %d, should be %d)\033[0m\n", test_num, roots[0], num_of_roots, test->num_of_roots);
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        case two_roots:
+            if (!(num_of_roots == test->num_of_roots && check_roots_square(coefs, roots))) {
+                printf("\033[31mTest #%d failed: solve() -> %lg %lg (number of roots = %d, should be %d)\033[0m\n", test_num, roots[0], roots[1], num_of_roots, test->num_of_roots);
+                return 1;
+            }
+            else {
+                return 0;
+            }
+        default:
+            printf("Error");
+            break;
+
     }
 }
 
-int run_test_solve() {
-    double tests[num_of_tests][5] = {
-        {1, 5, 6, -3, -2},
-        {1, -2, 1, 1, 123},
-        {0, 1, -1, 1, 123},
-        {1, 1, -2, -2, 1},
-        {0, 0, 0, 123, 123},
-        {0, 0, 1, 123, 123},
-        {1, -6, 5, 1, 5},
-        {1, -10, 24, 4, 6},
-        {1, -8, 15, 3, 5},
-        {0, 10, -1, 0.1, 123}
+void run_test_solve() {
+    TestData tests[num_of_tests] = {
+        {.coef_a = 1, .coef_b = 5, .coef_c = 6, .num_of_roots = 2},
+        {.coef_a = 1, .coef_b = -2, .coef_c = 1, .num_of_roots = 2},
+        {.coef_a = 0, .coef_b = 1, .coef_c = -1, .num_of_roots = 1},
+        {.coef_a = 1, .coef_b = 1, .coef_c = -2, .num_of_roots = 2},
+        {.coef_a = 0, .coef_b = 0, .coef_c = 0, .num_of_roots = -1},
+        {.coef_a = 0, .coef_b = 0, .coef_c = 1, .num_of_roots = 0},
+        {.coef_a = 1, .coef_b = -6, .coef_c = 5, .num_of_roots = 2},
+        {.coef_a = 1, .coef_b = -10, .coef_c = 24, .num_of_roots = 2},
+        {.coef_a = 1, .coef_b = -8, .coef_c = 15, .num_of_roots = 2},
+        {.coef_a = 0, .coef_b = 10, .coef_c = -1, .num_of_roots = 1}
     };
+
     int failed_tests = 0;
     for (int i = 0; i < num_of_tests; ++i) {
-        failed_tests += one_test_solve(tests[i], i);
+        failed_tests += one_test_solve(&tests[i], i);
     }
-    return failed_tests;
+    if (failed_tests > 0) {
+        printf("\033[31mFailed tests: %d\033[0m\n", failed_tests);
+    }
+    else {
+        printf("\033[32mAll tests passed!:)\033[0m\n");
+    }
 }
 
-int input(double *coefs) {
-    assert(coefs[0] != NULL);
-    assert(coefs[1] != NULL);
-    assert(coefs[2] != NULL);
-    input_coefficients:
-        printf("Enter coefficients a, b, c:\n");
-        if (scanf("%lf %lf %lf", &coefs[0], &coefs[1], &coefs[2]) != 3) {
-            flushline();
-            goto incorrect_input;
-        }
-        else {
-            return 1;
-        }
-    incorrect_input:
-        printf("Incorrect input\n");
-        printf("Still want to continue? \033[33m[y/n]\033[0m\n");
-        char ans = getchar();
+void start (double *coefs, double *roots) {
+    assert(coefs != NULL);
+    assert(roots != NULL);
+
+    printf("Want to run tests (\033[33mt\033[0m) or solver (\033[33ms\033[0m)? \033[33m[t/s]\033[0m\n");
+    //flushline();
+    char ans = getchar();
+    while (!(ans == 't' || ans == 's')) {
+        printf("Incorrect input. Please, type either \033[33m't'\033[0m or \033[33m's'\033[0m.\n");
         flushline();
-        if (ans == 'n') {
-            return 0;
+        ans = getchar();
+        char ans1 = getchar();
+        if (ans1 != '\n' && ans1 != EOF) {
+            ans = '$';
         }
-        else if (ans == 'y') {
-            goto input_coefficients;
+    }
+    if (ans == 't') {
+        run_test_solve();
+        printf("Want to run the solver (\033[33ms\033[0m) or end (\033[33me\033[0m) the program? \033[33m[s/e]\033[0m\n");
+        flushline();
+        char ans = getchar();
+        while (!(ans == 's' || ans == 'e')) {
+            printf("Incorrect input. Please, type either \033[33m's'\033[0m or \033[33m'e'\033[0m.\n");
+            flushline();
+            ans = getchar();
+            char ans1 = getchar();
+            if (ans1 != '\n' && ans1 != EOF) {
+                ans = '$';
+            }
+        }
+        if (ans == 's') {
+            input(coefs, roots);
         }
         else {
-            goto incorrect_input;
+            printf("End of program. Goodbye.\n");
         }
+
+    }
+    else {
+        input(coefs, roots);
+    }
+}
+
+void input(double *coefs, double *roots) {
+    assert(coefs != NULL);
+    assert(roots != NULL);
+    assert(isfinite(coefs[0]));
+    assert(isfinite(coefs[1]));
+    assert(isfinite(coefs[2]));
+
+    printf("Enter coefficients a, b, c:\n");
+    while (scanf("%lf %lf %lf", &coefs[0], &coefs[1], &coefs[2]) != 3) {
+        flushline();
+        printf("Incorrect input\n");
+    }
+    int count_roots = solve(coefs, roots);
+    output(count_roots, roots);
+    continue_solving(coefs, roots);
 }
 
 void output(int num_of_roots, double *roots) {
+    assert(roots != NULL);
+
     switch(num_of_roots) {
         case inf_roots:
             printf("Infinite number of roots\n");
@@ -154,50 +288,32 @@ void output(int num_of_roots, double *roots) {
     }
 }
 
-int loop () {
-    ask_for_input:
-        printf("Want me to solve another one? \033[33m[y/n]\033[0m\n");
+void continue_solving (double *coefs, double *roots) {
+    printf("Want me to solve another one? \033[33m[y/n]\033[0m\n");
+    flushline();
+    char ans = getchar();
+    while (!(ans == 'y' || ans == 'n')) {
+        printf("Incorrect input. Please, type either \033[33m'y'\033[0m or \033[33m'n'\033[0m.\n");
         flushline();
-        char ans = getchar();
-        if (ans == 'y') {
-            return 1;
+        ans = getchar();
+        char ans1 = getchar();
+        if (ans1 != '\n' && ans1 != EOF) {
+            ans = '$';
         }
-        else if (ans == 'n') {
-            return 0;
-        }
-        else {
-            printf("Incorrect input\n");
-            goto ask_for_input;
-        }
+    }
+    if (ans == 'y') {
+        input(coefs, roots);
+    }
+    else {
+        printf("End of program. Goodbye.\n");
+    }
 }
 
 int main () {
-    /*
-    //testing
-    int failed_tests = run_test_solve();
-    if (failed_tests > 0) {
-        printf("\033[31mFailed tests: %d\033[0m\n", failed_tests);
-    }
-    else {
-        printf("\033[32mAll tests passed!:)\033[0m\n");
-    }
-    */
-    int program_running = 1;
     printf("Solves quadratic equation ax^2 + bx + c = 0\n");
-    while (program_running) {
-        double coefs[] = {NAN, NAN, NAN};
-        double roots[] = {NAN, NAN};
-        program_running = input(coefs);
-        if (!program_running) {
-            printf("End of program. Goodbye.\n");
-            break;
-        }
-        assert(isfinite(coefs[0]));
-        assert(isfinite(coefs[1]));
-        assert(isfinite(coefs[2]));
-        int count_roots = solve(coefs, roots);
-        output(count_roots, roots);
-        program_running = loop();
-    }
+    double coefs[3];
+    double roots[] = {NAN, NAN};
+    start(coefs, roots);
+
     return 0;
 }
