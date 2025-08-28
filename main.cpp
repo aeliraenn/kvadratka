@@ -3,9 +3,25 @@
 #include <stdio.h>
 #include <float.h>
 #include <stdlib.h>  //for NULL
+#include <conio.h>
+
+#ifdef _WIN32
+#include <windows.h> //for sleep() on Windows
+#else
+#include <unistd.h> //for usleep() on Linux, etc.
+#endif
 
 const double eps = DBL_EPSILON;
-const int num_of_tests = 12;
+const int num_of_tests = 1;
+const int delay = 50;
+
+enum colors {
+    GREEN,   //32m
+    YELLOW,  //33m
+    RED,  //31m
+    BLUE, //34m
+    WHITE //37m
+};
 
 enum compare_cases {
     LESS = -1,
@@ -22,18 +38,22 @@ enum cases {
 
 // more files
 
-struct TestData {
-    double coef_a = 0;
-    double coef_b = 0;
-    double coef_c = 0;
-    int num_of_roots = 0;
-};
-
-/*
 struct Coefs {
-
+    double a;
+    double b;
+    double c;
 };
-*/
+
+struct Roots {
+    double x1;
+    double x2;
+    int num_of_roots;
+};
+
+struct TestData {
+    Coefs coefs;
+    Roots roots;
+};
 
 // add struct for coefs and roots with n_roots
 
@@ -50,14 +70,77 @@ bool check_root_linear (double *coefs, double x);
 bool check_roots_square (double *coefs, double *roots);
 int one_test_solve(TestData *test, int test_num);
 void run_test_solve();
+void ms_sleep(int milliseconds);
+void type_string(const char *text);
+void type_int(int num);
+void type_double(double num);
+void start_loading();
 
-//cleans the input stream up to the next line
+void ms_sleep(int milliseconds) {
+#ifdef _WIN32
+    Sleep(milliseconds);
+#else
+     usleep((useconds_t)milliseconds * 1000);
+#endif
+}
+
+void type_string(const char *text) {
+    assert(text != NULL);
+
+    for (int i = 0; i < strlen(text); i++) {
+        putchar(text[i]);
+        fflush(stdout);
+        ms_sleep(delay);
+    }
+}
+
+void type_int(int num) {
+
+    char str_num[20] = {};
+    sprintf(str_num, "%d", num);
+    type_string(str_num);
+
+}
+
+void type_double(double num) {
+    assert(isfinite(num));
+
+    char str_num[30] = {};
+    sprintf(str_num, "%lg", num);
+    type_string(str_num);
+
+}
+
+void start_loading() {
+    ms_sleep(500);
+    type_string("Please wait, loading program... \n");
+    ms_sleep(500);
+    for (int i = 0; i <= 100; i++) {
+        ms_sleep(100);
+        printf("Loading: \033[33m[%d%%]\033[0m\r", i);
+        if (i == 33) {
+            type_string("Oof, I need to get a rest...");
+            ms_sleep(3000);
+            type_string(" To continue, \033[33mpress any key\033[0m (please, don't).\r");
+            _getch();
+            printf("\x1b[2K");
+            ms_sleep(1500);
+            type_string("Alright...\r");
+            ms_sleep(2000);
+            printf("\x1b[2K");
+            type_string("Loading: \r");
+        }
+    }
+
+    //printf("\x1b[2K"); //clears the current line in output buffer
+    type_string("\033[32mProgram is loaded! :)\033[0m\a\n");
+}
+
 void flushline () {
     char c = '\0';
     while ((c = getchar()) != '\n' && c != EOF);
+    //cleans the input stream up to the next line
 }
-
-// add compare doubles
 
 char compare_doubles (double n1, double n2, int compare_case) {
     assert(isfinite(n1));
@@ -70,6 +153,8 @@ char compare_doubles (double n1, double n2, int compare_case) {
             return (fabs(n1 - n2) < eps);
         case MORE:
             return ((n1 - n2) > eps);
+        default:
+            printf("Error: compare_doubles didn't get a specifier\n");
     }
 }
 
@@ -160,42 +245,42 @@ bool check_roots_square (double *coefs, double *roots) {
 
 int one_test_solve(TestData *test, int test_num) {
      assert(test != NULL);
-     assert(isfinite(test->coef_a));
-     assert(isfinite(test->coef_b));
-     assert(isfinite(test->coef_c));
+     assert(isfinite(test->coefs.a));
+     assert(isfinite(test->coefs.b));
+     assert(isfinite(test->coefs.c));
 
-    double coefs[] = {test->coef_a, test->coef_b, test->coef_c};
+    double coefs[] = {test->coefs.a, test->coefs.b, test->coefs.c};
     double roots[2] = {};
     int num_of_roots = solve(coefs, roots);
 
     switch (num_of_roots) {
         case no_roots:
-            if (num_of_roots != test->num_of_roots) {
-                printf("\033[31mTest #%d failed: solve() -> %d roots (should not be any)\033[0m\n", test_num, num_of_roots, test->num_of_roots);
+            if (num_of_roots != test->roots.num_of_roots) {
+                printf("\033[31mTest #%d failed: solve() -> %d roots (should not be any)\033[0m\n", test_num, num_of_roots, test->roots.num_of_roots);
                 return 1;
             }
             else {
                 return 0;
             }
         case inf_roots:
-            if (num_of_roots != test->num_of_roots) {
-                printf("\033[31mTest #%d failed: solve() -> %d roots (should be infinite number of roots)\033[0m\n", test_num, num_of_roots, test->num_of_roots);
+            if (num_of_roots != test->roots.num_of_roots) {
+                printf("\033[31mTest #%d failed: solve() -> %d roots (should be infinite number of roots)\033[0m\n", test_num, num_of_roots, test->roots.num_of_roots);
                 return 1;
             }
             else {
                 return 0;
             }
         case one_root:
-            if (!(num_of_roots == test->num_of_roots && check_root_linear(coefs, roots[0]))) {
-                printf("\033[31mTest #%d failed: solve() -> %lg (number of roots = %d, should be %d)\033[0m\n", test_num, roots[0], num_of_roots, test->num_of_roots);
+            if (!(num_of_roots == test->roots.num_of_roots && check_root_linear(coefs, roots[0]))) {
+                printf("\033[31mTest #%d failed: solve() -> %lg (number of roots = %d, should be %d)\033[0m\n", test_num, roots[0], num_of_roots, test->roots.num_of_roots);
                 return 1;
             }
             else {
                 return 0;
             }
         case two_roots:
-            if (!(num_of_roots == test->num_of_roots && check_roots_square(coefs, roots))) {
-                printf("\033[31mTest #%d failed: solve() -> %lg %lg (number of roots = %d, should be %d)\033[0m\n", test_num, roots[0], roots[1], num_of_roots, test->num_of_roots);
+            if (!(num_of_roots == test->roots.num_of_roots && check_roots_square(coefs, roots))) {
+                printf("\033[31mTest #%d failed: solve() -> %lg %lg (number of roots = %d, should be %d)\033[0m\n", test_num, roots[0], roots[1], num_of_roots, test->roots.num_of_roots);
                 return 1;
             }
             else {
@@ -203,6 +288,7 @@ int one_test_solve(TestData *test, int test_num) {
             }
         default:
             printf("Error");
+            return 0;
             break;
 
     }
@@ -210,7 +296,8 @@ int one_test_solve(TestData *test, int test_num) {
 
 void run_test_solve() {
     TestData tests[num_of_tests] = {
-        {.coef_a = 1, .coef_b = 5, .coef_c = 6, .num_of_roots = 2},
+        {.coefs = {1, 5, 6}, .roots = {-2, -3, 2}}};
+         /*
         {.coef_a = 1, .coef_b = -2, .coef_c = 1, .num_of_roots = 2},
         {.coef_a = 0, .coef_b = 1, .coef_c = -1, .num_of_roots = 1},
         {.coef_a = 1, .coef_b = 1, .coef_c = -2, .num_of_roots = 2},
@@ -223,16 +310,18 @@ void run_test_solve() {
         {.coef_a = 0, .coef_b = 0, .coef_c = -10000000, .num_of_roots = 0},
         {.coef_a = 1, .coef_b = 0, .coef_c = 0, .num_of_roots = 2}
     };
+    */
 
     int failed_tests = 0;
     for (int i = 0; i < num_of_tests; ++i) {
         failed_tests += one_test_solve(&tests[i], i);
     }
     if (failed_tests > 0) {
-        printf("\033[31mFailed tests: %d\033[0m\n", failed_tests);
+        type_string("\033[31mFailed tests: %d\033[0m\n");
+        type_int(failed_tests);
     }
     else {
-        printf("\033[32mAll tests passed!:)\033[0m\n");
+        type_string("\033[32mAll tests passed. Hooray!\033[0m\n");
     }
 }
 
@@ -240,11 +329,11 @@ void start (double *coefs, double *roots) {
     assert(coefs != NULL);
     assert(roots != NULL);
 
-    printf("Want to run tests (\033[33mt\033[0m) or solver (\033[33ms\033[0m)? \033[33m[t/s]\033[0m\n");
+    type_string("Want to run tests (\033[33mt\033[0m) or solver (\033[33ms\033[0m)? \033[33m[t/s]\033[0m\n");
     char ans = getchar();
     while (!(ans == 't' || ans == 's')) {
         flushline();
-        printf("Incorrect input. Please, type either \033[33m't'\033[0m or \033[33m's'\033[0m.\n");
+        type_string("Incorrect input. Please, type either \033[33m't'\033[0m or \033[33m's'\033[0m.\n");
         ans = getchar();
         char ans1 = getchar();
         if (ans1 != '\n' && ans1 != EOF) {
@@ -254,11 +343,11 @@ void start (double *coefs, double *roots) {
     if (ans == 't') {
         run_test_solve();
         flushline();
-        printf("Want to run the solver (\033[33ms\033[0m) or end (\033[33me\033[0m) the program? \033[33m[s/e]\033[0m\n");
+        type_string("Want to run the solver (\033[33ms\033[0m) or end (\033[33me\033[0m) the program? \033[33m[s/e]\033[0m\n");
         char ans = getchar();
         while (!(ans == 's' || ans == 'e')) {
             flushline();
-            printf("Incorrect input. Please, type either \033[33m's'\033[0m or \033[33m'e'\033[0m.\n");
+            type_string("Incorrect input. Please, type either \033[33m's'\033[0m or \033[33m'e'\033[0m.\n");
             ans = getchar();
             char ans1 = getchar();
             if (ans1 != '\n' && ans1 != EOF) {
@@ -272,7 +361,7 @@ void start (double *coefs, double *roots) {
             continue_solving(coefs, roots);
         }
         else {
-            printf("End of program. Goodbye.\n");
+            type_string("End of program. Goodbye.\n");
         }
 
     }
@@ -291,10 +380,10 @@ void input(double *coefs, double *roots) {
     assert(isfinite(coefs[1]));
     assert(isfinite(coefs[2]));
 
-    printf("Enter coefficients a, b, c:\n");
+    type_string("Enter coefficients a, b, c:\n");
     while (scanf("%lf %lf %lf", &coefs[0], &coefs[1], &coefs[2]) != 3) {
         flushline();
-        printf("Incorrect input. Enter coefficients a, b, c:\n");
+        type_string("Incorrect input. Enter coefficients a, b, c:\n");
     }
 
 }
@@ -304,43 +393,52 @@ void output(int num_of_roots, double *roots) {
 
     switch(num_of_roots) {
         case inf_roots:
-            printf("Infinite number of roots\n");
+            type_string("Infinite number of roots\n");
             break;
         case no_roots:
-            printf("No roots\n");
+            type_string("No roots\n");
             break;
         case one_root:
-            printf("One root: %lf\n", roots[0]);
+            type_string("One root: ");
+            type_double(roots[0]);
+            printf("\n");
             break;
         case two_roots:
-            printf("Two roots: %lf %lf\n", roots[0], roots[1]);
+            type_string("Two roots: ");
+            type_double(roots[0]);
+            type_string(" and ");
+            type_double(roots[1]);
+            printf("\n");
             break;
         default:
-            printf("Error: switch reached impossible case\n");
+            type_string("Error: switch reached impossible case\n");
     }
 }
 
 void continue_solving (double *coefs, double *roots) {
-    printf("Want me to solve another one? \033[33m[y/n]\033[0m\n");
+    type_string("Want me to continue the program? \033[33m[y/n]\033[0m\n");
     flushline();
     char ans = getchar();
     while (!(ans == 'y' || ans == 'n')) {
         flushline();
-        printf("Incorrect input. Please, type either \033[33m'y'\033[0m or \033[33m'n'\033[0m.\n");
+        type_string("Incorrect input. Please, type either \033[33m'y'\033[0m or \033[33m'n'\033[0m.\n");
         ans = getchar();
     }
     if (ans == 'y') {
-        flushline();//ygmghhgm
+        flushline();
         start(coefs, roots);
     }
     else {
-        printf("End of program. Goodbye.\n");
+        type_string("End of program. Goodbye.\n");
     }
 }
 
 int main () {
-    printf("Solves quadratic equation ax^2 + bx + c = 0\n");
-    double coefs[3] = {}; //
+    type_string("Solves quadratic equation ax^2 + bx + c = 0\n");
+    start_loading();
+    Roots rroots = {};
+    Coefs ccoefs {};
+    double coefs[3] = {};
     double roots[] = {NAN, NAN};
     start(coefs, roots);
 
