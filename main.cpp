@@ -95,7 +95,6 @@ void type_string(const char *text) {
 }
 
 void type_int(int num) {
-
     char str_num[20] = {};
     sprintf(str_num, "%d", num);
     type_string(str_num);
